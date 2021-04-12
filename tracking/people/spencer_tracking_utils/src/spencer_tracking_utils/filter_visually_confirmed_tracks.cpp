@@ -115,8 +115,9 @@ void newTrackedPersonsAndCompositesReceived(const TrackedPersons::ConstPtr& trac
         g_trackLastSeenAt[trackId] = currentTime;
     }
 
+    std::map<track_id, ros::Time> g_trackLastSeenAt_ = g_trackLastSeenAt;
     // Delete tracks which don't exist any more
-    for(std::map<track_id, ros::Time>::const_iterator trackIt = g_trackLastSeenAt.begin(); trackIt != g_trackLastSeenAt.end(); trackIt++) {
+    for(std::map<track_id, ros::Time>::const_iterator trackIt = g_trackLastSeenAt_.begin(); trackIt != g_trackLastSeenAt_.end(); trackIt++) {
         if(currentTime - trackIt->second > ros::Duration(5.0) || currentTime < trackIt->second) {
             track_id trackId = trackIt->first;
             g_trackLastSeenAt.erase(trackId);
