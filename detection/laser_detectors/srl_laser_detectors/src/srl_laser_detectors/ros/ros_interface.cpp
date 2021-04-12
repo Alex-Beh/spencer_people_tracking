@@ -77,6 +77,7 @@ void ROSInterface::connect(Detector* detector, const string& laserTopic, const s
 
     // Publisher
     m_detectedPersonsPublisher = m_nodeHandle.advertise<spencer_tracking_msgs::DetectedPersons>(detectedPersonsTopic, queue_size);
+    m_laserScanFilteredPublisher = m_nodeHandle.advertise<sensor_msgs::LaserScan>("scan_filter_result", queue_size);
 
     double min_expected_frequency, max_expected_frequency;
     m_privateNodeHandle.param("min_expected_frequency", min_expected_frequency, 30.0);
@@ -99,6 +100,7 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
     Labels resultingLabels(segments.size(), BACKGROUND);
     m_detector->detect(segments, resultingLabels, resultingConfidences);
 
+    // printf("\n\nsegments: %lu resultingLabels: %lu resultingConfidences: %lu\n\n",segments.size(),resultingLabels.size(),resultingConfidences.size());
     //
     // Output DetectedPersons message
     //
@@ -111,6 +113,9 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
     spencer_tracking_msgs::DetectedPersons detectedPersons;
     detectedPersons.header = laserscan->header;
 
+    sensor_msgs::LaserScan laserScanFiltered;
+    laserScanFiltered =*laserscan;
+
     for(size_t i = 0; i < segments.size(); i++) {
         // Skip segments classified as background
         Label label = resultingLabels[i];
@@ -118,6 +123,15 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
 
         // Create DetectedPerson
         const Segment& segment = segments[i];
+
+        printf("\nsegment: %lu\n",segment.indices.size());
+        
+        for(size_t i = 0; i < segment.indices.size(); i++) {
+            std::cout<<segment.indices[i]<<" ";
+            laserScanFiltered.ranges[segment.indices[i]] = std::numeric_limits<double>::quiet_NaN();
+
+        }
+        std::cout<<""<<std::endl;
 
         spencer_tracking_msgs::DetectedPerson detectedPerson;
         m_lastDetectionId += m_detectionIdIncrement;
@@ -134,11 +148,13 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
         for(size_t d = 0; d < 2; d++) detectedPerson.pose.covariance[d*6 + d] = poseVariance;
         for(size_t d = 2; d < 6; d++) detectedPerson.pose.covariance[d*6 + d] = LARGE_VARIANCE;
 
+        detectedPerson.indices = segment.indices;
         detectedPersons.detections.push_back(detectedPerson);
     }
 
     // Publish message
     m_detectedPersonsPublisher.publish(detectedPersons);
+    m_laserScanFilteredPublisher.publish(laserScanFiltered);
 }
 
 
