@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 message(STATUS "Using OpenCV version ${OpenCV_VERSION} installed at: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "OpenCV supported compute capabilities are: ${OpenCV_COMPUTE_CAPABILITIES}, compiled with CUDA version: ${OpenCV_CUDA_VERSION}")
 
@@ -23,6 +23,7 @@ if(OpenCV_CUDA_VERSION)
   message(STATUS "Building with OpenCV CUDA support enabled")
 endif()
 
+if(FALSE)
 add_executable(detect_people src/detect_people.cpp)
 add_dependencies(detect_people ${catkin_EXPORTED_TARGETS}) # for generated message headers etc.
 target_link_libraries(detect_people ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
@@ -42,3 +43,4 @@ install(DIRECTORY launch/
 install(DIRECTORY parameters/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/parameters
   PATTERN ".svn" EXCLUDE)
+endif()
