@@ -22,3 +22,6 @@ string          MODALITY_GENERIC_MONOCULAR_VISION = mono
 string          MODALITY_GENERIC_STEREO_VISION = stereo
 string          MODALITY_GENERIC_RGBD = rgbd
 string          MODALITY_GENERIC_YOLO = yolo
+
+#Original point indices in the laser scan, zero-based (used for matching segments with groundtruth annotations)
+uint32[] indices
