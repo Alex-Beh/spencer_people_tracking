@@ -44,9 +44,9 @@ colored sensor_msgs/PointCloud2 (where the colors indicate different segments), 
 class LaserscanSegmentationVisualizer(object):
     def __init__(self):
         laserscanTopic = rospy.resolve_name("laser")
-        segmentationTopic = rospy.resolve_name("laser_segmentation")
-        cloudTopic = segmentationTopic + "_cloud"
-        markersTopic = segmentationTopic + "_markers"
+        self.segmentationTopic = rospy.resolve_name("laser_segmentation")
+        cloudTopic = self.segmentationTopic + "_cloud"
+        markersTopic = self.segmentationTopic + "_markers"
 
         ### Configurable parameters ##########
         self.unlabelledColor = rospy.get_param("~unlabelled_color", [0.7, 0.7, 0.7])
@@ -60,13 +60,13 @@ class LaserscanSegmentationVisualizer(object):
         self.markerArrayPublisher = rospy.Publisher(markersTopic, MarkerArray, queue_size=3)
 
         laserSubscriber = message_filters.Subscriber(laserscanTopic, LaserScan, queue_size=3)
-        segmentationSubscriber = message_filters.Subscriber(segmentationTopic, LaserscanSegmentation, queue_size=3)
+        segmentationSubscriber = message_filters.Subscriber(self.segmentationTopic, LaserscanSegmentation, queue_size=3)
 
         self.timeSynchronizer = message_filters.TimeSynchronizer([laserSubscriber, segmentationSubscriber], 20)
         self.timeSynchronizer.registerCallback(self.newSegmentationReceived)
 
         rospy.loginfo("Visualizing laser scan segmentation (for laser scans published at %s) at %s on topics %s and %s"
-            % (laserscanTopic, segmentationTopic, cloudTopic, markersTopic) )
+            % (laserscanTopic, self.segmentationTopic, cloudTopic, markersTopic) )
 
         rospy.spin()
 
@@ -139,10 +139,14 @@ class LaserscanSegmentationVisualizer(object):
             textMarker = Marker(header=header)
             textMarker.type = Marker.TEXT_VIEW_FACING
             textMarker.id = len(markerArray.markers)
-            textMarker.text = "%d" % segment.label
+            if(self.segmentationTopic.split("_")[-1]=='unfiltered'):
+                textMarker.text = "{}-{}".format('unfiltered',segment.label)
+                textMarker.pose.position.x = centroid[0] + 0.6  # for readability
+            else:
+                textMarker.text = "{}".format(segment.label)
+                textMarker.pose.position.x = centroid[0] + 0.4  # for readability
             textMarker.color = ColorRGBA(r=color[0], g=color[1], b=color[2], a=1)
             textMarker.scale.z = 0.6  * self.fontScale
-            textMarker.pose.position.x = centroid[0] + 0.4  # for readability
             textMarker.pose.position.y = centroid[1]
             textMarker.pose.position.z = centroid[2]
 
@@ -191,5 +195,5 @@ class LaserscanSegmentationVisualizer(object):
 if __name__ == '__main__':
     arguments = rospy.myargv()
 
-    rospy.init_node("visualize_segmentation")
+    rospy.init_node("visualize_segmentation",anonymous=True)
     laserscanSegmentationVisualizer = LaserscanSegmentationVisualizer()

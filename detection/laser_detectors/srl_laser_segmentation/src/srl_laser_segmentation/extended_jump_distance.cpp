@@ -48,7 +48,7 @@ void ExtendedJumpDistanceSegmentation::performSegmentation(const std::vector<Poi
     const Point2D *previousPoint = NULL, *currentPoint = NULL;
 
     currentSegment->label = segmentCounter;
-
+    segmentCounter++;
     for(size_t pointIndex = 0; pointIndex < points.size(); pointIndex++){
         // Skip measurement if it is out-of-range
         const Point2D *newPoint = &points[pointIndex];
