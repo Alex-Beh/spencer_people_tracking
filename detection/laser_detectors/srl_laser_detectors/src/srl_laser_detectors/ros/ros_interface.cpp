@@ -113,8 +113,8 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
     spencer_tracking_msgs::DetectedPersons detectedPersons;
     detectedPersons.header = laserscan->header;
 
-    sensor_msgs::LaserScan laserScanFiltered;
-    laserScanFiltered =*laserscan;
+    // sensor_msgs::LaserScan laserScanFiltered;
+    // laserScanFiltered =*laserscan;
 
     for(size_t i = 0; i < segments.size(); i++) {
         // Skip segments classified as background
@@ -124,14 +124,12 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
         // Create DetectedPerson
         const Segment& segment = segments[i];
 
-        printf("\nsegment: %lu\n",segment.indices.size());
-        
-        for(size_t i = 0; i < segment.indices.size(); i++) {
-            std::cout<<segment.indices[i]<<" ";
-            laserScanFiltered.ranges[segment.indices[i]] = std::numeric_limits<double>::quiet_NaN();
-
-        }
-        std::cout<<""<<std::endl;
+        // printf("\nsegment: %lu\n",segment.indices.size());
+        // for(size_t i = 0; i < segment.indices.size(); i++) {
+        //     std::cout<<segment.indices[i]<<" ";
+        //     laserScanFiltered.ranges[segment.indices[i]] = std::numeric_limits<double>::quiet_NaN();
+        // }
+        // std::cout<<""<<std::endl;
 
         spencer_tracking_msgs::DetectedPerson detectedPerson;
         m_lastDetectionId += m_detectionIdIncrement;
@@ -154,7 +152,7 @@ void ROSInterface::newLaserscanAndSegmentationAvailable(const sensor_msgs::Laser
 
     // Publish message
     m_detectedPersonsPublisher.publish(detectedPersons);
-    m_laserScanFilteredPublisher.publish(laserScanFiltered);
+    // m_laserScanFilteredPublisher.publish(laserScanFiltered);
 }
 
 
