@@ -65,6 +65,7 @@ private:
     /// ROS handles
     ros::NodeHandle m_nodeHandle, m_privateNodeHandle;
     spencer_diagnostics::MonitoredPublisher m_detectedPersonsPublisher;
+    ros::Publisher m_laserScanFilteredPublisher;
 
     /// For synchronization of input laserscans and segmentations
     boost::shared_ptr<message_filters::Subscriber<sensor_msgs::LaserScan> > m_laserscanSubscriber;

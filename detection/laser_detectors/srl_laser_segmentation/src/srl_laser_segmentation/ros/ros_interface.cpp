@@ -59,6 +59,15 @@ void ROSInterface::newLaserscanAvailable(const sensor_msgs::LaserScan::ConstPtr&
 {
     if(laserscan->ranges.empty()) return; // used as "end of dataset" marker in evaluation
 
+    double minAvgDistanceFromSensor = 0;
+    m_privateNodeHandle.getParamCached("min_avg_distance_from_sensor", minAvgDistanceFromSensor);
+    ROS_INFO_ONCE("Minimum allowed average segment distance from sensor is %f meters!", minAvgDistanceFromSensor);
+
+    double maxAvgDistanceFromSensor = 10;
+    m_privateNodeHandle.getParamCached("max_avg_distance_from_sensor", maxAvgDistanceFromSensor);
+    ROS_INFO_ONCE("Maximum allowed average segment distance from sensor is %f meters!", maxAvgDistanceFromSensor);
+
+    int rejected_points=0,accepted_points=0;
     // Convert laserscan into Cartesian coordinates
     std::vector<Point2D> pointsInCartesianCoords;
     for(size_t pointIndex = 0; pointIndex < laserscan->ranges.size(); pointIndex++) {
@@ -66,14 +75,18 @@ void ROSInterface::newLaserscanAvailable(const sensor_msgs::LaserScan::ConstPtr&
         double rho = laserscan->ranges[pointIndex];
 
         Point2D point;
-        if(rho > laserscan->range_max || rho < laserscan->range_min) {
+        if(rho > laserscan->range_max || rho < laserscan->range_min || rho > maxAvgDistanceFromSensor || rho < minAvgDistanceFromSensor) {
             // Out-of-range measurement, set x and y to NaN
             // NOTE: We cannot omit the measurement completely since this would screw up point indices
             point(0) = point(1) = std::numeric_limits<double>::quiet_NaN();
+            rejected_points++;
         }
         else {
+            // point(0) =  cos(phi) * rho;
+            // point(1) = -sin(phi) * rho;
             point(0) =  cos(phi) * rho;
-            point(1) = -sin(phi) * rho;
+            point(1) = sin(phi) * rho;
+            accepted_points++;
         }
 
         pointsInCartesianCoords.push_back(point);
@@ -92,24 +105,18 @@ void ROSInterface::newLaserscanAvailable(const sensor_msgs::LaserScan::ConstPtr&
     double squaredMinSegmentWidth = minSegmentWidth * minSegmentWidth;
     ROS_INFO_ONCE("Filtering out all resulting segments with less than %d or more than %d points, or less than %.0f cm wide!", minPointsPerSegment, maxPointsPerSegment, minSegmentWidth * 100.0);
 
-    double minAvgDistanceFromSensor = 0;
-    m_privateNodeHandle.getParamCached("min_avg_distance_from_sensor", minAvgDistanceFromSensor);
-    ROS_INFO_ONCE("Minimum allowed average segment distance from sensor is %f meters!", minAvgDistanceFromSensor);
-
-    double maxAvgDistanceFromSensor = 10;
-    m_privateNodeHandle.getParamCached("max_avg_distance_from_sensor", maxAvgDistanceFromSensor);
-    ROS_INFO_ONCE("Maximum allowed average segment distance from sensor is %f meters!", maxAvgDistanceFromSensor);
-
     // Filter segments
     srl_laser_segmentation::LaserscanSegmentation laserscanSegmentation, laserscanSegmentationUnfiltered;
     laserscanSegmentation.segments.reserve(resultingSegments.size());
     laserscanSegmentationUnfiltered.segments.reserve(resultingSegments.size());
 
+    int no_indexes = 0;
     for(size_t i = 0; i < resultingSegments.size(); i++) {
         srl_laser_segmentation::LaserscanSegment& currentSegment = *resultingSegments[i];
 
         Point2D mean = Point2D::Zero();
         size_t numValidPoints = 0;
+        no_indexes=no_indexes+currentSegment.measurement_indices.size();
         for(size_t j = 0; j < currentSegment.measurement_indices.size(); j++) {
             Point2D& point = pointsInCartesianCoords[currentSegment.measurement_indices[j]];
             if(std::isnan(point(0))) continue;
@@ -133,17 +140,26 @@ void ROSInterface::newLaserscanAvailable(const sensor_msgs::LaserScan::ConstPtr&
             Point2D& lastPoint = pointsInCartesianCoords[ currentSegment.measurement_indices.back()];
             double dx = lastPoint(0) - firstPoint(0);
             double dy = lastPoint(1) - firstPoint(1);
-            if(dx*dx + dy*dy < squaredMinSegmentWidth) continue;
+            // if(dx*dx + dy*dy < squaredMinSegmentWidth && (abs(firstPoint(0)>0.05) || abs(lastPoint(1)>0.05))) continue;
+            if(dx*dx + dy*dy < squaredMinSegmentWidth){
+                printf("reject this label %d fistPoint(%.2f,%.2f) -- lastPoint(%.2f,%.2f)!!!\n",currentSegment.label,lastPoint(0),lastPoint(1),firstPoint(0),firstPoint(1));
+                continue;
+            }
         }
 
         // Segment looks okay
         laserscanSegmentation.segments.push_back(currentSegment);
     }
 
+    if(laserscan->ranges.size()-no_indexes-rejected_points!=0){
+        ROS_WARN("Seq: %d -- scan_no: %d -- segment_no: %d -- accepted_points: %d -- rejected_points: %d -- missing_pts: %d",laserscanSegmentation.header.seq,laserscan->ranges.size(),no_indexes,accepted_points,rejected_points,laserscan->ranges.size()-no_indexes-rejected_points);
+    }
+
     // Set message header and publish
     laserscanSegmentation.header = laserscanSegmentationUnfiltered.header = laserscan->header;
     if(m_laserscanSegmentationUnfilteredPublisher.getNumSubscribers() > 0) m_laserscanSegmentationUnfilteredPublisher.publish(laserscanSegmentationUnfiltered);
     m_laserscanSegmentationPublisher.publish(laserscanSegmentation);
+    printf("-------------\n");
 }
 
 

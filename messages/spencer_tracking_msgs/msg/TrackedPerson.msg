@@ -12,3 +12,6 @@ duration    age             # age of the track
 geometry_msgs/PoseWithCovariance       pose   # pose of the track (z value and orientation might not be set, check if corresponding variance on diagonal is > 99999)
 
 geometry_msgs/TwistWithCovariance   twist     # velocity of the track (z value and rotational velocities might not be set, check if corresponding variance on diagonal is > 99999)
+
+#Original point indices in the laser scan, zero-based (used for matching segments with groundtruth annotations)
+uint32[] indices
