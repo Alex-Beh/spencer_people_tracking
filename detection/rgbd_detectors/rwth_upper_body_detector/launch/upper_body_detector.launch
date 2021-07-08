@@ -11,8 +11,8 @@
 
     <!-- input topic names, can either be configured via these args or via remappings -->
     <arg name="ground_plane" default="/ground_plane" />
-    <arg name="depth_image" default="/depth/image_rect" />
-    <arg name="rgb_image" default="/rgb/image_rect_color" />
+    <arg name="depth_image" default="/depth/image_rect_raw" />
+    <arg name="rgb_image" default="/color/image_raw" />
     <arg name="camera_info_depth" default="/depth/camera_info" />
 
     <!-- output topic names, can either be configured via these args or via remappings -->

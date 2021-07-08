@@ -100,7 +100,7 @@ void GeometryUtils::convertDetectedPersonsToObservations(const spencer_tracking_
     {
         // Heuristic sanity check for detected person poses (if anything in the detector goes wrong or groundtruth annotations are invalid)
         if(!posePassesSanityCheck(detectedPerson.pose, false)) {
-            ROS_WARN_STREAM("Pose of DetectedPerson " << detectedPerson.detection_id << " does not pass sanity check, will ignore this detection: " << detectedPerson.pose.pose);
+            ROS_WARN_STREAM("Pose of DetectedPerson " << detectedPerson.detection_id << " does not pass sanity check, will ignore this detection in convertDetectedPersonsToObservations: " << detectedPerson.pose.pose);
             continue;
         }
 

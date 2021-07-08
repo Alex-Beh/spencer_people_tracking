@@ -151,9 +151,9 @@ void ROSInterface::newLaserscanAvailable(const sensor_msgs::LaserScan::ConstPtr&
         laserscanSegmentation.segments.push_back(currentSegment);
     }
 
-    if(laserscan->ranges.size()-no_indexes-rejected_points!=0){
-        ROS_WARN("Seq: %d -- scan_no: %d -- segment_no: %d -- accepted_points: %d -- rejected_points: %d -- missing_pts: %d",laserscanSegmentation.header.seq,laserscan->ranges.size(),no_indexes,accepted_points,rejected_points,laserscan->ranges.size()-no_indexes-rejected_points);
-    }
+    // if(laserscan->ranges.size()-no_indexes-rejected_points!=0){
+    //     ROS_WARN("Seq: %d -- scan_no: %d -- segment_no: %d -- accepted_points: %d -- rejected_points: %d -- missing_pts: %d",laserscanSegmentation.header.seq,laserscan->ranges.size(),no_indexes,accepted_points,rejected_points,laserscan->ranges.size()-no_indexes-rejected_points);
+    // }
 
     // Set message header and publish
     laserscanSegmentation.header = laserscanSegmentationUnfiltered.header = laserscan->header;
