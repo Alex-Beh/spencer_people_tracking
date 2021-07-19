@@ -35,16 +35,8 @@
 #include <srl_nearest_neighbor_tracker/logic_initiator.h>
 
 #include <srl_nearest_neighbor_tracker/occlusion_handling/basic_occlusion_manager.h>
-#include <srl_nearest_neighbor_tracker/occlusion_handling/laser_shade_occlusion_manager.h>
-#include <srl_nearest_neighbor_tracker/occlusion_handling/polygon_occlusion_manager.h>
-#include <srl_nearest_neighbor_tracker/occlusion_handling/occlusion_geodesics_manager.h>
 
-#include <srl_nearest_neighbor_tracker/data_association/basic_nearest_neighbor_data_association.h>
-#include <srl_nearest_neighbor_tracker/data_association/global_nearest_neighbor_data_association.h>
 #include <srl_nearest_neighbor_tracker/data_association/greedy_nearest_neighbor_data_association.h>
-
-#include <srl_nearest_neighbor_tracker/missed_observation_recovery/low_confidence_observations_recovery.h>
-
 
 #include <ros/ros.h>
 #include <Eigen/LU>
@@ -68,68 +60,29 @@ NearestNeighborTracker::NearestNeighborTracker(ros::NodeHandle& nodeHandle, ros:
     m_frameID = Params::get<string>("world_frame", "odom");
 
     // Get settings for IMM or simple Kalman Filter
-    if (Params::get<bool>("use_imm", false)){
-        ROS_INFO_STREAM("Using IMM filter for NNT");
-        m_filter.reset(new IMMFilter(m_nodeHandle, m_privateNodeHandle));
-    }
-    else {
-        ROS_INFO_STREAM("Using Extendend Kalman filter for NNT");
-        m_filter.reset(new EKF);
-    }
 
-    // Get setting for occlusion manager
-    if (Params::get<bool>("use_laser_shade_occlusion_manager", false)) {
-        ROS_INFO("Using laser shade occlusion manager for NNT");
-        m_occlusionManager.reset(new LaserShadeOcclusionManager);
-    }
-    else if (Params::get<bool>("use_polygon_occlusion_manager", false)) {
-        ROS_INFO("Using polygon occlusion manager for NNT");
-        m_occlusionManager.reset(new PolygonOcclusionManager);
-    }
-    else if (Params::get<bool>("use_occlusion_geodescis_manager", false)) {
-       ROS_INFO("Using occlusion geodesics manager for NNT");
-       m_occlusionManager.reset(new OcclusionGeodesicsManager);
-    }
-    else {
-        ROS_INFO("Using basic occlusion manager for NNT");
-        m_occlusionManager.reset(new BasicOcclusionManager);
-    }
+    ROS_INFO_STREAM("Using Extendend Kalman filter for NNT");
+    m_filter.reset(new EKF);
+
+    ROS_INFO("Using basic occlusion manager for NNT");
+    m_occlusionManager.reset(new BasicOcclusionManager);
+
     m_occlusionManager->initializeOcclusionManager(m_nodeHandle, m_privateNodeHandle);
     m_occlusionManager->setFrameIDofTracker(m_frameID);
 
     // Get setting for occlusion manager
     string dataAssociationStr = Params::get<string>("data_association_type", "greedy_nearest_neighbor");
-    if (dataAssociationStr == "basic_nearest_neighbor"){
-        m_dataAssociation.reset(new BasicNearestNeighborDataAssociation);
-    }
-    else if (dataAssociationStr == "global_nearest_neighbor") {
-        m_dataAssociation.reset(new GlobalNearestNeighborDataAssociation);
-    }
-    else if (dataAssociationStr == "greedy_nearest_neighbor") {
-        m_dataAssociation.reset(new GreedyNearestNeighborDataAssociation);
-    }
-    else{
-        ROS_FATAL_STREAM("Data association method is invalid: " << dataAssociationStr.c_str());
-    }
+    m_dataAssociation.reset(new GreedyNearestNeighborDataAssociation);
+
     ROS_INFO_STREAM("Selected data association method: \t" << dataAssociationStr);
     m_dataAssociation->initializeDataAssociation(m_nodeHandle, m_privateNodeHandle);
-
-    // Check which missed observation recovery mechanisms are active
-    if(!Params::get<string>("additional_low_confidence_detections", "").empty()) {
-        ROS_INFO("Enabling LowConfidenceObservationsRecovery!");
-        m_missedObservationRecoveries.push_back( MissedObservationRecovery::Ptr( new LowConfidenceObservationsRecovery ) );
-    }
-
-    // Initialize missed observation recovery mechanisms
-    foreach(MissedObservationRecovery::Ptr missedObservationRecovery, m_missedObservationRecoveries) {
-        missedObservationRecovery->init(m_nodeHandle, m_privateNodeHandle);
-    }
 }
 
 
 const Tracks& NearestNeighborTracker::processCycle(double currentTime, const Observations& newObservations)
 {
     ROS_INFO_STREAM("Received " << newObservations.size() << " observations.");
+    ROS_INFO_STREAM("Track size "<<m_tracks.size()<<".");
 
     beginCycle(currentTime);
 
@@ -140,45 +93,6 @@ const Tracks& NearestNeighborTracker::processCycle(double currentTime, const Obs
     Tracks occludedTracks = m_occlusionManager->manageOcclusionsBeforeDataAssociation(m_tracks, ros::Time(currentTime), m_frameID);
     ROS_INFO_STREAM("Occlusion manager returned " << occludedTracks.size() << " tracks");
     Pairings pairings = m_dataAssociation->performDataAssociation(m_tracks, newObservations);
-
-    // Extension to default NNT: If there are additional low-confidence observations (e.g. from a high-recall blob detector),
-    // try to match these against the tracks which are so far unmatched (but only if we are sufficiently sure that it is a valid track).
-    for(size_t i = 0; i < m_missedObservationRecoveries.size(); i++)
-    {
-        MissedObservationRecovery::Ptr& missedObservationRecovery = m_missedObservationRecoveries[i];
-
-        Tracks unmatchedTracks;
-        Tracks matchedTracks;
-
-        foreach(Track::Ptr track, m_tracks)
-        {
-            if(track->trackStatus == Track::OCCLUDED || track->trackStatus == Track::MISSED)
-            {
-                if(missedObservationRecovery->isTrackEligibleForRecovery(track))        
-                    unmatchedTracks.push_back(track);
-            }
-            else if (track->trackStatus == Track::MATCHED)
-            {
-                track->numberOfConsecutiveWeakMatches = 0;
-                matchedTracks.push_back(track);
-            }
-        }
-
-        if(!unmatchedTracks.empty()) {
-            Observations recoveredObservations;
-            missedObservationRecovery->recoverObservations(currentTime, unmatchedTracks, matchedTracks, recoveredObservations);
-            missedObservationRecovery->publishRecoveredObservations(currentTime, recoveredObservations); // for debugging
-            
-            ROS_INFO_STREAM("Data association  with" << recoveredObservations.size() << " recovered (weak) observations and " << unmatchedTracks.size() << " unmatched tracks");
-            Pairings additionalPairings = m_dataAssociation->performDataAssociation(unmatchedTracks, recoveredObservations);
-            pairings.insert(pairings.end(), additionalPairings.begin(), additionalPairings.end());
-
-            foreach(Pairing::Ptr pairing, additionalPairings) {
-                // Increment counter. The value is checked inside isTrackEligibleForRecovery() to check if further weak associations are allowed.
-                pairing->track->numberOfConsecutiveWeakMatches++;
-            }
-        }
-    }
 
     Pairings reappearedParings = m_occlusionManager->occludedTrackAssociation(occludedTracks, newObservations, ros::Time(currentTime));
 
@@ -202,6 +116,8 @@ const Tracks& NearestNeighborTracker::processCycle(double currentTime, const Obs
 
     bool useInitiationLogic = Params::get<bool>("use_initiation_logic", true);
     if(useInitiationLogic) {
+        printf("\n");
+        ROS_WARN("Checking observations using track initiation logic.");
         // Extension to default NNT: Use track initiation logic
         InitiatorCandidates confirmedTrackCandidates = m_initiator.processObservations(newObservations);
         initNewTracksFromCandidates(confirmedTrackCandidates);
@@ -211,6 +127,7 @@ const Tracks& NearestNeighborTracker::processCycle(double currentTime, const Obs
         // (less than a person radius).
         initNewTracksFromObservations(newObservations);
     }
+    ROS_WARN("Finished checking observations using track initiation logic.\n");
 
     deleteObsoleteTracks();
 
@@ -356,7 +273,7 @@ void NearestNeighborTracker::initNewTracksFromObservations(const Observations& n
 
 void NearestNeighborTracker::initNewTracksFromCandidates(const InitiatorCandidates candidates)
 {
-    ROS_DEBUG_STREAM("Initializing " << candidates.size() << " new tracks from initialization logic candidates" << std::endl);
+    ROS_DEBUG_STREAM("Initializing " << candidates.size() << " new tracks from initialization logic candidates");
 
     Tracks newTracks;
     foreach(InitiatorCandidate::Ptr candidate, candidates)

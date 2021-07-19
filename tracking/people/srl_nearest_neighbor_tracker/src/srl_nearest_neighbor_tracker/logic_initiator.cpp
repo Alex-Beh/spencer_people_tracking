@@ -70,7 +70,7 @@ LogicInitiator::LogicInitiator()
 
     ROS_INFO_STREAM("LogicInitiator set to the following configuration: \nMinimal velocity of tracks "
             << m_velMin << "m/s\nMaximal velocity of tracks " << m_velMax
-            << "\nMinimal velocity when detection has any of the modalities > " << highConfidenceModalities
+            << "m/s\nMinimal velocity when detection has any of the modalities > " << highConfidenceModalities
             << ": " << m_velMinHighConfidence << " m/s, max: " << m_velMaxHighConfidence
             << "m/s\nNumber of scans "<< m_numberScans << "\nAllowed missed observations "
             <<  m_maxMissedObs << "\nIncremental checking "<< m_incrementalCheck );
@@ -233,7 +233,7 @@ InitiatorCandidates LogicInitiator::processObservations(const Observations obser
     }
     m_candidates = acceptedCandidates;
 
-    ROS_INFO_STREAM("Number of accepted initation candidates " << acceptedCandidates.size() << std::endl);
+    ROS_INFO_STREAM("Number of accepted initation candidates " << acceptedCandidates.size());
     return newTracks;
 }
 

@@ -34,11 +34,8 @@
 #include <srl_nearest_neighbor_tracker/base/tracker.h>
 #include <srl_nearest_neighbor_tracker/ekf.h>
 #include <srl_nearest_neighbor_tracker/logic_initiator.h>
-#include <srl_nearest_neighbor_tracker/imm_filter.h>
 #include <srl_nearest_neighbor_tracker/occlusion_handling/occlusion_manager.h>
 #include <srl_nearest_neighbor_tracker/data_association/data_association_interface.h>
-#include <srl_nearest_neighbor_tracker/missed_observation_recovery/missed_observation_recovery.h>
-
 
 
 namespace srl_nnt {
@@ -123,8 +120,6 @@ private:
     // The currently used data association.
     DataAssociationInterface::Ptr m_dataAssociation;
 
-    // Recovery mechanisms when a track has no matching observation.
-    std::vector<MissedObservationRecovery::Ptr> m_missedObservationRecoveries;
 };
 
 

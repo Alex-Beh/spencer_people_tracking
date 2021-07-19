@@ -79,9 +79,6 @@ EKF::EKF(string parameterPrefix)
     else
         ROS_FATAL_STREAM("Unknown motion model for EKF filter with name :" << modelType << "\nReview settings!");
 
-
-
-
     // noise
     m_useProcessNoise = Params::get<bool>(parameterPrefix+"use_process_noise", true);
 
@@ -144,13 +141,12 @@ void EKF::predictTrackState(FilterState::Ptr state, double deltatime)
         Q = m_defaultQ;
     }
 
-    MotionModel::MotionModelVector x, xp;
-    MotionModel::MotionModelMatrix A, Cp;
+    MotionModel::MotionModelVector xp;
+    MotionModel::MotionModelMatrix F, Cp;
     // Apply state transition matrix
-    A = m_motionModel->A(kfs.m_x,deltatime);
-    xp = A * m_motionModel->convertToMotionModel(kfs.m_x);
-    Cp = A * m_motionModel->convertToMotionModel(kfs.m_C) * A.transpose() + Q;
-
+    F = m_motionModel->A(kfs.m_x,deltatime);
+    xp = F * m_motionModel->convertToMotionModel(kfs.m_x);
+    Cp = F * m_motionModel->convertToMotionModel(kfs.m_C) * F.transpose() + Q;
 
     kfs.m_xp = m_motionModel->convertToState(xp);
     kfs.m_Cp =  m_motionModel->convertToState(Cp);
@@ -161,7 +157,7 @@ void EKF::predictTrackState(FilterState::Ptr state, double deltatime)
     //  ROS_INFO_STREAM("xp " << kfs.m_xp);
     //  ROS_INFO_STREAM("Cp " << kfs.m_Cp);
 
-    ROS_DEBUG_STREAM("Predicted track state " << kfs.m_xp);
+    ROS_DEBUG_STREAM("In EKF, Predicted track state " << kfs.m_xp);
 }
 
 
@@ -171,6 +167,7 @@ void EKF::updateMatchedTrack(FilterState::Ptr state, Pairing::ConstPtr pairing)
 
     // Update step of the Kalman filter
     StateObsMatrix K = kfs.m_Cp * kfs.m_H.transpose() * pairing->Sinv;
+    // kfs.m_x = kfs.m_xp + K * (pairing->v - kfs.m_H*kfs.m_xp);
     kfs.m_x = kfs.m_xp + K * pairing->v;
     kfs.m_C = kfs.m_Cp - K * kfs.m_H * kfs.m_Cp;
     //ROS_WARN_STREAM("Turning rate= " << kfs.m_x(4) << "rad/sec ; " <<  kfs.m_x(4) * 57.2957795  << "deg/sec");

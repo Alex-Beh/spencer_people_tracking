@@ -124,12 +124,14 @@ Pairings GreedyNearestNeighborDataAssociation::performDataAssociation(Tracks& tr
                     // Calculate inverse of innovation covariance if possible
                     if (ln_det_S > MATRIX_LN_EPS)
                     {
+                        ROS_INFO("ln_det_S >>>>>>> MATRIX_LN_EPS");
                         pairingRef.Sinv = lu.inverse();
                         pairingRef.d = (pairingRef.v.transpose() * pairingRef.Sinv * pairingRef.v)(0,0);
                         pairingRef.singular = pairingRef.d < 0.0;
                     }
                     else
                     {
+                        ROS_INFO("ln_det_S <<<<<<< MATRIX_LN_EPS");      
                         pairingRef.Sinv = ObsMatrix::Constant(OBS_DIM, OBS_DIM, numeric_limits<double>::quiet_NaN());
                         pairingRef.d = numeric_limits<double>::quiet_NaN();
                         pairingRef.singular = true;
@@ -165,9 +167,9 @@ Pairings GreedyNearestNeighborDataAssociation::performDataAssociation(Tracks& tr
             if (currentCost < BIG_COST)
             {
                 compatiblePairings.push_back(boost::make_shared<Pairing>(pairingArray[i][j]));
-                //ROS_DEBUG_STREAM("Assigning track " << i << "(" << track->id << ")"<< " to observation " << j);
                 markAsMatched(track, compatiblePairings.back());
-                //Setting found association to BIG_COST in cost matrix
+                ROS_DEBUG_STREAM("Assigning track " << i << "(" << track->id << ")"<< " to observation " << observations.at(j)->id);
+                // Setting found association to BIG_COST in cost matrix
                 // ROS_INFO_STREAM("Cost Matrix " << costMatrix);
                 // ROS_INFO_STREAM("tracks " << costMatrix.row(i));
                 // ROS_INFO_STREAM("obs " << costMatrix.col(i));

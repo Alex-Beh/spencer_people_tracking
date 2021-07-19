@@ -85,6 +85,7 @@ void GeometryUtils::convertDetectedPersonsToObservations(const spencer_tracking_
     // Ignore if pointer is not set
     if(!detectedPersons) return;
 
+    ROS_DEBUG("xxxxx convertDetectedPersonsToObservations xxxxx");
     // We need to convert all coordinates into our fixed world reference frame
     double currentTime = detectedPersons->header.stamp.toSec();
     Eigen::Affine3d transformIntoWorldFrame;
@@ -118,6 +119,9 @@ void GeometryUtils::convertDetectedPersonsToObservations(const spencer_tracking_
         }
 
         poseToMeanAndCovariance(detectedPerson.pose, observation->z, observation->R, transformIntoWorldFrame);
+
+        // std::set<std::string>::iterator modality_it = observation->modalities.begin();
+        // if(overrideMeasurementNoise && observation->modalities.size()==1 && *modality_it == "laser2d") observation->R = newMeasurementNoiseMatrix;
 
         // Overwrite measurement noise if activated
         if(overrideMeasurementNoise) observation->R = newMeasurementNoiseMatrix;

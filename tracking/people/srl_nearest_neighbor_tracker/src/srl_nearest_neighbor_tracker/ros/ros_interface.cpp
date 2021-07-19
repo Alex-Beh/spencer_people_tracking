@@ -94,6 +94,7 @@ void ROSInterface::incomingObservations(const spencer_tracking_msgs::DetectedPer
         m_startClock = m_clockBefore =  clock();
         m_timingInitialized = true;
     }
+    ROS_WARN_STREAM("------------------ incomingObservations ------------------");
     double currentTime = detectedPersons->header.stamp.toSec();
     ros::Time currentRosTime = detectedPersons->header.stamp; // to make sure that timestamps remain exactly the same up to nanosecond precision (for ExactTime sync policy)
 

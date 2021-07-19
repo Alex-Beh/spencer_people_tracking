@@ -36,12 +36,16 @@ include_directories(${Eigen3_INCLUDE_DIRS})
 
 catkin_package()
 
-if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
-  # Disable debug and info-level logging statements in release mode
-  add_definitions(-DROSCONSOLE_MIN_SEVERITY=ROSCONSOLE_SEVERITY_WARN)
-else()
-  add_definitions(-DROSCONSOLE_MIN_SEVERITY=ROSCONSOLE_SEVERITY_DEBUG)
-endif()
+# if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+#   message("--- WARN ---")
+#   # Disable debug and info-level logging statements in release mode
+#   add_definitions(-DROSCONSOLE_MIN_SEVERITY=ROSCONSOLE_SEVERITY_WARN)
+# else()
+#   message("--- DEBUG ---")
+#   add_definitions(-DROSCONSOLE_MIN_SEVERITY=ROSCONSOLE_SEVERITY_DEBUG)
+# endif()
+
+add_definitions(-DROSCONSOLE_MIN_SEVERITY=ROSCONSOLE_SEVERITY_DEBUG)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
@@ -54,18 +58,18 @@ set(TRACKER_SOURCES
     ${SOURCE_DIR}/ekf.cpp
     ${SOURCE_DIR}/nearest_neighbor_tracker.cpp
     ${SOURCE_DIR}/logic_initiator.cpp
-    ${SOURCE_DIR}/imm_filter.cpp
+    # ${SOURCE_DIR}/imm_filter.cpp
 
-    ${SOURCE_DIR}/occlusion_handling/laser_shade_occlusion_manager.cpp
+    # ${SOURCE_DIR}/occlusion_handling/laser_shade_occlusion_manager.cpp
     ${SOURCE_DIR}/occlusion_handling/basic_occlusion_manager.cpp
-    ${SOURCE_DIR}/occlusion_handling/polygon_occlusion_manager.cpp
-    ${SOURCE_DIR}/occlusion_handling/occlusion_geodesics_manager.cpp
+    # ${SOURCE_DIR}/occlusion_handling/polygon_occlusion_manager.cpp
+    # ${SOURCE_DIR}/occlusion_handling/occlusion_geodesics_manager.cpp
 
-    ${SOURCE_DIR}/data_association/basic_nearest_neighbor_data_association.cpp
-    ${SOURCE_DIR}/data_association/global_nearest_neighbor_data_association.cpp
+    # ${SOURCE_DIR}/data_association/basic_nearest_neighbor_data_association.cpp
+    # ${SOURCE_DIR}/data_association/global_nearest_neighbor_data_association.cpp
     ${SOURCE_DIR}/data_association/greedy_nearest_neighbor_data_association.cpp
 
-    ${SOURCE_DIR}/missed_observation_recovery/low_confidence_observations_recovery.cpp
+    # ${SOURCE_DIR}/missed_observation_recovery/low_confidence_observations_recovery.cpp
 )
 
 
